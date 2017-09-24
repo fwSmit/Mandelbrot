@@ -11,6 +11,7 @@ comp mandel(comp z, comp c);
 unsigned int isBlowingUp(comp z, comp c);
 double scale(double number, double from_min, double from_max, double to_min, double to_max);
 double max_x = 2;
+unsigned int max_interation = 1;
 int main()
 {
     sf::RenderWindow window(sf::VideoMode(1000, 800), "SFML works!");
@@ -54,13 +55,16 @@ int main()
                 //img.setPixel(x, y, sf::Color(std::abs(std::sin(double(x + y)/double(size_x + size_y) * 3.14)) * 255, 0, 0));
                 comp zero(0, 0);
                 comp pos(scale(x, 0, size_x, -2, max_x), scale(y, 0, size_y, -2, 2));
-                img.setPixel(x, y, sf::Color(isBlowingUp(zero, pos)*100, 0, 0));
+                unsigned int result = isBlowingUp(zero, pos);
+                img.setPixel(x, y, sf::Color( result == max_interation ? 0 : 255, 0, 0));
             }
         }
         texture.loadFromImage(img);
         sprite.setTexture(texture);
         window.draw(sprite);
         window.display();
+        //max_x -= 0.1;
+        max_interation++;
     }
 
     return 0;
@@ -75,8 +79,8 @@ comp mandel(comp z, comp c)
 unsigned int isBlowingUp(comp z, comp c)
 {
     //cout << "starting with z = " <<  z << endl << "and c = " << c << endl;
-    unsigned int max_interation = 40, curr_iteration = 0;
-    while(abs(z) < 2.0 && curr_iteration <= max_interation) {
+    unsigned int curr_iteration = 0;
+    while(abs(z) < 2.0 && curr_iteration < max_interation) {
         z = mandel(z, c);
         //cout << z << endl;
         curr_iteration++;
@@ -91,4 +95,74 @@ double scale(double number, double from_min, double from_max, double to_min, dou
     assert(number <= from_max);
     return ((number - from_min) * (to_max - to_min)) /
                 (from_max - from_min)                           + to_min;
+}
+
+typedef struct {
+    double r;       // a fraction between 0 and 1
+    double g;       // a fraction between 0 and 1
+    double b;       // a fraction between 0 and 1
+} rgb;
+
+typedef struct {
+    double h;       // angle in degrees
+    double s;       // a fraction between 0 and 1
+    double v;       // a fraction between 0 and 1
+} hsv;
+
+rgb hsv2rgb(hsv in)
+{
+    double      hh, p, q, t, ff;
+    long        i;
+    rgb         out;
+
+    if(in.s <= 0.0) {       // < is bogus, just shuts up warnings
+        out.r = in.v;
+        out.g = in.v;
+        out.b = in.v;
+        return out;
+    }
+    hh = in.h;
+    if(hh >= 360.0) hh = 0.0;
+    hh /= 60.0;
+    i = (long)hh;
+    ff = hh - i;
+    p = in.v * (1.0 - in.s);
+    q = in.v * (1.0 - (in.s * ff));
+    t = in.v * (1.0 - (in.s * (1.0 - ff)));
+
+    switch(i) {
+    case 0:
+        out.r = in.v;
+        out.g = t;
+        out.b = p;
+        break;
+    case 1:
+        out.r = q;
+        out.g = in.v;
+        out.b = p;
+        break;
+    case 2:
+        out.r = p;
+        out.g = in.v;
+        out.b = t;
+        break;
+
+    case 3:
+        out.r = p;
+        out.g = q;
+        out.b = in.v;
+        break;
+    case 4:
+        out.r = t;
+        out.g = p;
+        out.b = in.v;
+        break;
+    case 5:
+    default:
+        out.r = in.v;
+        out.g = p;
+        out.b = q;
+        break;
+    }
+    return out;
 }
